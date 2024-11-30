@@ -1,9 +1,6 @@
 # Create Elastic IPs for NAT Gateways
 resource "aws_eip" "nat" {
   for_each = aws_subnet.public  # One EIP per public subnet
-
-  domain = "vpc"  # Associate with the VPC
-
   tags = {
     Name = format("eip-nat-%s", each.key)
   }
