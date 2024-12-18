@@ -10,5 +10,3 @@ resource "aws_subnet" "public" {
     Name = format("%s-public-subnet-%d", var.tags["environment"], each.key + 1)
   }
 }
-
-
