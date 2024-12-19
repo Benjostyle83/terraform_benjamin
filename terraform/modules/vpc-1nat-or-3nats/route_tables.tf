@@ -1,43 +1,45 @@
+# Public Route Table
 resource "aws_route_table" "public" {
-  for_each = aws_subnet.public # Create one route table for each public subnet
-  vpc_id   = aws_vpc.main.id   # Reference the main VPC
+  vpc_id = aws_vpc.main.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id # Use the internet gateway for public subnets
+    gateway_id = aws_internet_gateway.main.id
   }
 
   tags = {
-    Name = format("public-route-table-%s-%s", var.tags["environment"], each.key)
+    Name = "${var.environment}-public-route-table"
   }
 }
 
-
-# Associate the Public Route Table with Public Subnets
+# Associate Public Subnets with Public Route Table
 resource "aws_route_table_association" "public" {
-  for_each = aws_subnet.public # Iterate over the public subnets
+  for_each = aws_subnet.public
 
   subnet_id      = each.value.id
-  route_table_id = aws_route_table.public[each.key].id # Reference the public route table for each subnet
+  route_table_id = aws_route_table.public.id
 }
 
+# Private Route Tables
 resource "aws_route_table" "private" {
+  count  = length(var.private_subnets)
   vpc_id = aws_vpc.main.id
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.id
+    nat_gateway_id = aws_nat_gateway.example[count.index % length(aws_nat_gateway.example)].id
   }
 
   tags = {
-    Name = "Private Route Table"
+    Name = "${var.environment}-private-route-table-${count.index}"
   }
 }
 
-# Associate the Private Route Table with Private Subnets
-resource "aws_route_table_association" "private" {
-  for_each = aws_subnet.private # Iterate over the private subnets
+# Associate Private Subnets with Private Route Table
 
-  subnet_id      = each.value.id
-  route_table_id = aws_route_table.private[each.key].id # Reference the private route table for each subnet
+resource "aws_route_table_association" "private" {
+  for_each = { for index, cidr_block in var.private_subnets : index => cidr_block }
+
+  subnet_id      = aws_subnet.private[each.key].id
+  route_table_id = aws_route_table.private[each.key].id
 }
